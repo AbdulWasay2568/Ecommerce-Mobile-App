@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userID      Int      @id @default(autoincrement())
+  username    String?   @unique
+  email       String   @unique
+  password    String
+  role        String   @default("customer")  
+  address     String?
+  created_at  DateTime @default(now())
+  Cart        Cart[]
+  ProductReview ProductReview[]
+}
+
+
+model Category {
+  categoryID  Int       @id @default(autoincrement())
+  name        String
+  created_at  DateTime  @default(now())
+  Product     Product[]
+}
+
+model Product {
+  productID   Int       @id @default(autoincrement())
+  categoryID  Int?
+  name        String
+  description String?
+  price       Float
+  stock       Int?
+  image_url   String
+  created_at  DateTime  @default(now())
+  Category    Category? @relation(fields: [categoryID], references: [categoryID])
+  Cart        Cart[]
+  ProductReview ProductReview[]
+}
+
+model Cart {
+  cartID      Int      @id @default(autoincrement())
+  userID      Int
+  productID   Int
+  quantity    Int
+  total_amount Float
+  created_at  DateTime @default(now())
+  User        User     @relation(fields: [userID], references: [userID], onDelete: Cascade)
+  Product     Product? @relation(fields: [productID], references: [productID])
+  Payment     Payment[]
+
+  // Composite unique constraint on userID and productID
+  @@unique([userID, productID])
+}
+
+model Payment {
+  paymentID   Int      @id @default(autoincrement())
+  cartID      Int
+  payment_amount Float
+  payment_date DateTime @default(now())
+  payment_method PaymentMethod
+  payment_status PaymentStatus
+  Cart        Cart     @relation(fields: [cartID], references: [cartID], onDelete: Cascade)
+  Order       Order[]
+}
+
+enum PaymentMethod {
+  cash
+  card
+}
+
+enum PaymentStatus {
+  completed
+  pending
+}
+
+
+model Order {
+  orderID     Int      @id @default(autoincrement())
+  paymentID   Int
+  order_date  DateTime @default(now())
+  order_status OrderStatus
+  Payment     Payment  @relation(fields: [paymentID], references: [paymentID], onDelete: Cascade)
+  ShippingInfo ShippingInfo[]
+}
+
+enum OrderStatus {
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+model ShippingInfo {
+  shippingID  Int      @id @default(autoincrement())
+  orderID     Int
+  shipping_address String
+  shipping_method String
+  tracking_number String?
+  shipped_date DateTime?
+  delivered_date DateTime?
+  Order       Order    @relation(fields: [orderID], references: [orderID], onDelete: Cascade)
+}
+
+model ProductReview {
+  reviewID    Int      @id @default(autoincrement())
+  productID   Int
+  userID      Int
+  rating      Int
+  review      String?
+  created_at  DateTime @default(now())
+  Product     Product  @relation(fields: [productID], references: [productID], onDelete: Cascade)
+  User        User     @relation(fields: [userID], references: [userID], onDelete: Cascade)
+}
+
